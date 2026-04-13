@@ -30,19 +30,29 @@
 22. [Lookups](#22-lookups)
 23. [Working with Time](#23-working-with-time)
 
+### 🟦 Core User — sujets manquants ajoutés
+
+24. [Statistical Processing — `eval` fonctions complètes](#24-statistical-processing--eval-fonctions-complètes)
+25. [Comparing Values — `where`, `search`, `fieldformat`](#25-comparing-values--where-search-fieldformat)
+26. [Result Modification — `fillnull`, `filldown`, `replace`, `foreach`, `makemv`](#26-result-modification--fillnull-filldown-replace-foreach-makemv)
+27. [Correlation Analysis — `transaction`, corrélations, patterns](#27-correlation-analysis)
+28. [Intro aux Knowledge Objects](#28-intro-aux-knowledge-objects)
+29. [Creating Knowledge Objects — Tags, Event Types, Field Extractions via UI](#29-creating-knowledge-objects)
+30. [Creating Field Extractions — IFX, Regex, `props.conf` / `transforms.conf`](#30-creating-field-extractions)
+
 ### 🟧 Power User (SPLK-1002) — sujets supplémentaires
 
-24. [Sous-recherches](#24-sous-recherches)
-25. [Commandes de combinaison — `append`, `appendcols`, `join`](#25-commandes-de-combinaison--append-appendcols-join)
-26. [Commande `transaction`](#26-commande-transaction)
-27. [Commandes `eventstats` et `streamstats`](#27-commandes-eventstats-et-streamstats)
-28. [Commandes `xyseries` et `untable`](#28-commandes-xyseries-et-untable)
-29. [Commande `map`](#29-commande-map)
-30. [Search Macros](#30-search-macros)
-31. [Field Aliases & Calculated Fields](#31-field-aliases--calculated-fields)
-32. [Workflow Actions](#32-workflow-actions)
-33. [Lookups avancés](#33-lookups-avancés)
-34. [Data Models, Pivot & `tstats`](#34-data-models-pivot--tstats)
+31. [Sous-recherches](#31-sous-recherches)
+32. [Commandes de combinaison — `append`, `appendcols`, `join`](#32-commandes-de-combinaison--append-appendcols-join)
+33. [Commande `transaction` avancée](#33-commande-transaction-avancée)
+34. [Commandes `eventstats` et `streamstats`](#34-commandes-eventstats-et-streamstats)
+35. [Commandes `xyseries` et `untable`](#35-commandes-xyseries-et-untable)
+36. [Commande `map`](#36-commande-map)
+37. [Search Macros](#37-search-macros)
+38. [Field Aliases & Calculated Fields](#38-field-aliases--calculated-fields)
+39. [Workflow Actions](#39-workflow-actions)
+40. [Lookups avancés](#40-lookups-avancés)
+41. [Data Models, Pivot & `tstats`](#41-data-models-pivot--tstats)
 
 ---
 
@@ -706,13 +716,513 @@ earliest="01/15/2024:00:00:00" latest="01/15/2024:23:59:59"
 
 ---
 
+# 🟦 Core User — sujets complémentaires
+
+---
+
+## 24. Statistical Processing — `eval` fonctions complètes
+
+### Fonctions de conversion de type
+
+```spl
+| eval nb = tonumber("42")           ← chaîne → nombre
+| eval nb = tonumber("0x1F", 16)     ← hex → nombre décimal
+| eval s  = tostring(bytes, "commas") ← nombre → chaîne formatée
+| eval s  = tostring(bytes, "hex")   ← nombre → hexadécimal
+| eval s  = tostring(duration, "duration") ← secondes → "hh:mm:ss"
+```
+
+### Fonctions sur les chaînes
+
+| Fonction | Description | Exemple |
+|----------|-------------|---------|
+| `len(s)` | Longueur de la chaîne | `eval n = len(uri)` |
+| `upper(s)` / `lower(s)` | Majuscules / minuscules | `eval h = upper(host)` |
+| `trim(s)` / `ltrim` / `rtrim` | Supprime espaces en début/fin | `eval s = trim(field)` |
+| `substr(s, start, len)` | Sous-chaîne (base 1) | `eval s = substr(uri, 1, 10)` |
+| `replace(s, regex, repl)` | Remplacement regex | `eval s = replace(uri, "\/api", "")` |
+| `split(s, delim)` | Découpe en champ multivalué | `eval l = split(tags, ",")` |
+| `mvjoin(mv, delim)` | Rejoint un champ multivalué | `eval s = mvjoin(values, " | ")` |
+| `mvcount(mv)` | Nombre de valeurs dans un MV | `eval n = mvcount(errors)` |
+| `mvindex(mv, idx)` | Valeur à l'index idx (base 0) | `eval first = mvindex(list, 0)` |
+| `mvfind(mv, regex)` | Index de la première valeur matchant | `eval i = mvfind(codes, "^4")` |
+
+### Fonctions de test et validation
+
+```spl
+| eval is_null    = isnull(field)        ← vrai si champ absent/null
+| eval is_notnull = isnotnull(field)     ← vrai si champ présent
+| eval is_num     = isnum(field)         ← vrai si valeur numérique
+| eval is_str     = isstr(field)         ← vrai si valeur chaîne
+| eval safe       = coalesce(field1, field2, "default")
+```
+
+> **`coalesce`** retourne la première valeur non-null parmi les arguments. Très utile pour fusionner des champs qui peuvent être absents.
+
+### Fonctions mathématiques
+
+```spl
+| eval r  = round(3.14159, 2)    ← 3.14
+| eval r  = floor(3.9)           ← 3
+| eval r  = ceiling(3.1)         ← 4
+| eval r  = abs(-5)              ← 5
+| eval r  = sqrt(16)             ← 4.0
+| eval r  = exp(1)               ← e ≈ 2.718
+| eval r  = log(100, 10)         ← 2.0 (log base 10)
+| eval r  = pow(2, 10)           ← 1024
+| eval r  = random()             ← entier aléatoire (0 à 2^31-1)
+```
+
+### Fonction `match` — test regex booléen
+
+```spl
+| eval is_ip = match(clientip, "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+| where match(uri, "^\/admin")
+```
+
+> `match` retourne 1 (vrai) ou 0 (faux). Différent de `rex` qui extrait — `match` teste seulement.
+
+### Fonction `null()` et `coalesce`
+
+```spl
+| eval clean = if(field=="N/A", null(), field)
+← null() supprime la valeur — le champ devient absent
+
+| eval display = coalesce(username, email, "anonymous")
+← prend la première valeur non-null dans l'ordre
+```
+
+---
+
+## 25. Comparing Values — `where`, `search`, `fieldformat`
+
+### `search` vs `where` — différences clés
+
+| | `search` | `where` |
+|--|----------|---------|
+| **Syntaxe** | Comme la recherche principale | Expression évaluée (comme `eval`) |
+| **Wildcards** | Oui (`status=4*`) | Non (utiliser `match()` ou `like()`) |
+| **Comparaisons** | Limitées | Complètes (`>`, `<`, `!=`, `IN`) |
+| **Fonctions** | Non | Oui (`isnull()`, `isnum()`, `match()`) |
+| **NULL** | Ignore les nulls | Peut tester avec `isnull()` |
+
+```spl
+| search status=4*          ← wildcard OK dans search
+| where status >= 400       ← comparaison numérique dans where
+| where isnull(user)        ← test null uniquement dans where
+| where match(uri, "admin") ← regex dans where
+```
+
+### Opérateurs de comparaison dans `where`
+
+```spl
+| where count > 100
+| where status != 200
+| where bytes >= 1024 AND bytes <= 8192
+| where user IN ("admin", "root", "splunk")
+| where NOT status IN (200, 201, 204)
+| where like(uri, "/api/%")     ← LIKE SQL (% = wildcard)
+| where cidrmatch("10.0.0.0/8", clientip)
+```
+
+> **`like`** utilise `%` (zéro ou plusieurs caractères) et `_` (un seul caractère), comme SQL.
+> **`cidrmatch`** vérifie si une IP appartient à un sous-réseau CIDR.
+
+### `fieldformat` — formater l'affichage sans changer la valeur
+
+`fieldformat` modifie uniquement l'**affichage** d'un champ, pas sa valeur réelle (contrairement à `eval`).
+
+```spl
+| fieldformat bytes = tostring(bytes, "commas")
+← Affiche "1,234,567" mais la valeur reste 1234567 pour les calculs
+
+| fieldformat _time = strftime(_time, "%d/%m/%Y %H:%M")
+← Affiche la date lisible sans modifier _time
+```
+
+> ⚠️ Après `fieldformat`, le champ affiché est formaté mais les calculs ultérieurs (`stats`, `where`, `eval`) continuent d'utiliser la valeur originale.
+
+### `eval` avec `case` — référence complète
+
+```spl
+| eval priority = case(
+    severity=="critical", 1,
+    severity=="high",     2,
+    severity=="medium",   3,
+    1==1,                 4    ← else (toujours vrai)
+  )
+```
+
+> `case(condition1, valeur1, condition2, valeur2, ...)` — évalue dans l'ordre, retourne la valeur de la première condition vraie. Si aucune n'est vraie et pas de `1==1`, retourne `null`.
+
+### `eval` avec `if` imbriqués
+
+```spl
+| eval label = if(status < 300, "success",
+                if(status < 400, "redirect",
+                if(status < 500, "client_error", "server_error")))
+```
+
+> Pour plus de 2-3 conditions, préférer `case()` — plus lisible.
+
+---
+
+## 26. Result Modification — `fillnull`, `filldown`, `replace`, `foreach`, `makemv`
+
+### `fillnull` — remplacer les valeurs nulles
+
+```spl
+| fillnull                          ← remplace tous les nulls par "0"
+| fillnull value="N/A"              ← remplace par "N/A"
+| fillnull value="0" field1 field2  ← seulement sur ces champs
+```
+
+> `fillnull` affecte les champs **absents ou null** dans les résultats. Très utile après `stats` quand certaines combinaisons n'ont pas de valeurs.
+
+### `filldown` — propager la dernière valeur non-null vers le bas
+
+```spl
+| sort _time
+| filldown user
+← Si user est null sur une ligne, prend la valeur de la ligne précédente
+```
+
+```spl
+| filldown field1 field2   ← sur des champs spécifiques seulement
+```
+
+### `replace` — remplacer des valeurs dans un champ
+
+```spl
+| replace "N/A" WITH "Unknown" IN status
+| replace 0 WITH "none" IN count
+| replace "*error*" WITH "ERROR" IN message   ← wildcards supportés
+```
+
+**Syntaxe :** `| replace <valeur_cherchée> WITH <valeur_remplacement> IN <champ>`
+
+> Différent de `eval replace()` qui utilise des regex. `| replace` utilise des **wildcards simples**.
+
+### `foreach` — appliquer une transformation sur plusieurs champs
+
+```spl
+| foreach status_* [eval <<FIELD>> = if(<<FIELD>>==0, null(), <<FIELD>>)]
+← Applique l'eval sur tous les champs commençant par "status_"
+← <<FIELD>> est remplacé par le nom du champ courant
+```
+
+```spl
+| foreach q1_sales q2_sales q3_sales q4_sales
+  [eval <<FIELD>> = round(<<FIELD>> / 1000, 1)]
+```
+
+> `foreach` évite de répéter la même transformation sur chaque champ manuellement. Le token `<<FIELD>>` représente le nom du champ courant dans l'itération.
+
+### Commandes pour les champs multivalués (MV)
+
+#### `makemv` — transformer une chaîne en champ multivalué
+
+```spl
+| makemv delim="," tags
+← "linux,web,prod" → champ MV avec 3 valeurs
+
+| makemv tokenizer="(\w+)" description
+← Extrait chaque mot comme valeur séparée (regex)
+```
+
+#### `mvexpand` — éclater les valeurs MV en lignes séparées
+
+```spl
+| mvexpand tags
+← Un événement avec tags=["linux","web","prod"] → 3 événements séparés
+```
+
+> ⚠️ `mvexpand` **multiplie les lignes** — vérifier le volume avant utilisation.
+
+#### `mvcombine` — combiner des lignes en champ multivalué
+
+```spl
+| mvcombine delim=", " status
+← Inverse de mvexpand : regroupe les lignes en une seule avec MV
+```
+
+#### `nomv` — convertir MV en chaîne simple
+
+```spl
+| nomv tags
+← ["linux","web","prod"] → "linux web prod" (séparateur = espace)
+```
+
+---
+
+## 27. Correlation Analysis
+
+### Approche par `stats` — corréler des événements de sources différentes
+
+```spl
+index=auth OR index=web
+| stats count(eval(index="auth" AND action="failure")) AS auth_fails,
+        count(eval(index="web" AND status>=500))       AS web_errors
+  by _time span=5m, src_ip
+| where auth_fails > 5 AND web_errors > 0
+```
+
+### Détecter des séquences d'événements
+
+```spl
+index=security
+| transaction src_ip maxspan=10m
+  startswith=eval(action=="scan")
+  endswith=eval(action=="exploit")
+| where eventcount >= 2
+```
+
+### Corréler plusieurs index avec `append` + `stats`
+
+```spl
+index=firewall action=blocked | eval source="firewall" | table _time src_ip source
+| append [search index=ids severity=high | eval source="ids" | table _time src_ip source]
+| stats values(source) AS sources, count by src_ip
+| where mvcount(sources) > 1
+← IPs apparaissant dans plusieurs sources (firewall ET ids)
+```
+
+### `join` pour corréler sur un champ commun
+
+```spl
+index=auth action=failure
+| stats count AS fail_count by user
+| join user [
+    search index=hr | table user, department, manager
+  ]
+| where fail_count > 10
+| table user, department, manager, fail_count
+```
+
+### Utilisation de `eval` pour créer des indicateurs de corrélation
+
+```spl
+index=web
+| eval is_error   = if(status >= 400, 1, 0)
+| eval is_slow    = if(response_time > 3000, 1, 0)
+| eval is_suspect = if(is_error=1 AND is_slow=1, 1, 0)
+| stats sum(is_suspect) AS suspect_count, count AS total by host
+| eval suspect_rate = round(suspect_count / total * 100, 1)
+| where suspect_rate > 5
+```
+
+---
+
+## 28. Intro aux Knowledge Objects
+
+Les **Knowledge Objects** sont des enrichissements configurés dans Splunk qui s'appliquent automatiquement à la recherche, sans modifier les données brutes indexées.
+
+### Catégories de Knowledge Objects
+
+| Catégorie | Objets | Rôle |
+|-----------|--------|------|
+| **Fields** | Field extractions, Field aliases, Calculated fields | Créer et normaliser des champs |
+| **Classification** | Event types, Tags | Catégoriser et étiqueter les événements |
+| **Enrichissement** | Lookups, Workflow actions | Ajouter du contexte externe |
+| **Normalisation** | Data models (CIM) | Structurer les données |
+| **Recherche** | Saved searches, Reports, Alerts, Macros | Réutiliser et automatiser |
+
+### Ordre d'application au moment de la recherche
+
+```
+Données brutes (_raw)
+    ↓
+1. Field extractions (regex, delimiter, IFX)
+    ↓
+2. Field aliases (renommage)
+    ↓
+3. Calculated fields (eval sauvegardé)
+    ↓
+4. Lookups (automatic lookups)
+    ↓
+5. Event types & Tags
+    ↓
+Résultats enrichis disponibles à l'utilisateur
+```
+
+> ⚠️ L'ordre est important : les calculated fields peuvent utiliser les field aliases car ils sont appliqués après. Les lookups automatiques voient les champs aliasés.
+
+### Partage et permissions
+
+| Niveau | Qui peut voir/utiliser |
+|--------|------------------------|
+| **Private** | L'auteur uniquement |
+| **App** | Tous les utilisateurs de l'app courante |
+| **Global** | Tous les utilisateurs, toutes les apps |
+
+> Les Knowledge Objects créés dans une app sont **isolés par défaut** à cette app. Pour les partager entre apps, il faut les promouvoir au niveau Global.
+
+---
+
+## 29. Creating Knowledge Objects
+
+### Créer un Event Type
+
+1. Lancer la recherche qui définit l'event type
+2. Cliquer sur **Save As → Event Type**
+3. Donner un nom, une priorité (1–10, 1 = haute), des tags optionnels
+4. L'event type est utilisable avec `eventtype=nom`
+
+```spl
+← Recherche de base :
+index=web status>=400 status<500
+
+← Après sauvegarde comme "http_client_errors" :
+eventtype=http_client_errors | stats count by status
+```
+
+**Priorité des event types :** Si un événement correspond à plusieurs event types, tous sont appliqués (champ `eventtype` multivalué). La priorité (1–10) n'élimine pas les autres, elle est utilisée pour le **coloring** dans les résultats.
+
+### Créer et gérer des Tags
+
+Les tags s'associent à une **paire champ=valeur** spécifique.
+
+**Depuis l'interface :**
+1. Dans les résultats de recherche, cliquer sur la valeur d'un champ
+2. Sélectionner **Edit Tags**
+3. Ajouter un ou plusieurs tags séparés par des virgules
+
+**Depuis Settings → Tags :**
+- Créer, lister, activer/désactiver des tags
+- Un tag peut s'appliquer à plusieurs paires champ=valeur
+
+```spl
+← Exemple : tag "privileged" appliqué à user=admin ET user=root
+
+tag::user=privileged     ← recherche par tag sur un champ spécifique
+tag=privileged           ← recherche tous les événements avec ce tag
+```
+
+### Créer un Lookup (table de référence)
+
+**Étape 1 — Uploader le fichier CSV :**
+Settings → Lookups → Lookup table files → New → Choisir le fichier CSV
+
+**Étape 2 — Définir la lookup :**
+Settings → Lookups → Lookup definitions → New
+- Choisir le type (File-based), le fichier CSV uploadé
+- Nommer la lookup (ex. `geo_lookup`)
+
+**Étape 3 — Utiliser la lookup :**
+```spl
+index=web | lookup geo_lookup clientip OUTPUT country, city
+```
+
+**Étape 4 (optionnel) — Automatic lookup :**
+Settings → Lookups → Automatic lookups → New
+- Associer la lookup à un sourcetype/source/host
+- Définir les champs d'entrée/sortie
+- La lookup s'applique alors automatiquement
+
+---
+
+## 30. Creating Field Extractions
+
+### Méthodes d'extraction — récapitulatif
+
+| Méthode | Description | Complexité |
+|---------|-------------|-----------|
+| **IFX** (Interactive Field Extractor) | Interface graphique par sélection | Faible |
+| **Regex** | Expression régulière avec groupe nommé | Moyenne |
+| **Delimiter** | Découpage par séparateur fixe | Faible |
+
+### Utiliser l'IFX (Interactive Field Extractor)
+
+1. Lancer une recherche avec des événements représentatifs
+2. Cliquer sur **Extract New Fields** (en bas à gauche de la sidebar)
+3. Choisir la méthode : **Regular Expression** ou **Delimiter**
+4. Sélectionner des exemples positifs (valeurs à extraire)
+5. Sélectionner des contre-exemples si nécessaire
+6. Nommer le champ et sauvegarder
+
+> L'IFX génère automatiquement la regex et la sauvegarde dans `props.conf` / `transforms.conf`.
+
+### Extraction par regex — syntaxe complète
+
+```spl
+← En recherche (temporaire) :
+| rex "(?i)user[=:\s]+(?P<username>[a-zA-Z0-9_.-]+)"
+
+← Sauvegardée (permanente) via Settings → Fields → Field Extractions
+```
+
+**Éléments regex essentiels :**
+
+| Pattern | Description |
+|---------|-------------|
+| `(?P<nom>pattern)` | Groupe nommé → crée le champ `nom` |
+| `(?i)` | Insensible à la casse |
+| `\d+` | Un ou plusieurs chiffres |
+| `\w+` | Lettres, chiffres, underscore |
+| `[^"]+` | Tout sauf guillemet |
+| `.*?` | Tout caractère, mode non-greedy |
+| `\s+` | Un ou plusieurs espaces |
+
+### Extraction par delimiter
+
+Utile pour les données structurées (CSV, TSV, formats avec séparateur fixe).
+
+```spl
+← Exemple : "GET /index.html 200 1234"
+← Champs : method, uri, status, bytes
+
+| rex "^(?P<method>\S+)\s+(?P<uri>\S+)\s+(?P<status>\d+)\s+(?P<bytes>\d+)"
+```
+
+Ou via Settings → Fields → Field Extractions → **Source type : Delimiter**
+
+### `props.conf` et `transforms.conf` — notions de base
+
+Ces fichiers de configuration définissent les extractions de manière permanente.
+
+**`props.conf`** — associe une extraction à un sourcetype :
+```ini
+[access_combined]
+EXTRACT-user = user=(?P<username>\w+)
+REPORT-fields = my_transforms_stanza
+```
+
+**`transforms.conf`** — définit les transformations complexes :
+```ini
+[my_transforms_stanza]
+REGEX = (?P<username>\w+)\s+(?P<action>\w+)
+FORMAT = username::$1 action::$2
+```
+
+> Pour l'examen, savoir que `props.conf` = configuration par sourcetype/source/host, et `transforms.conf` = définitions des extractions regex réutilisables.
+
+### Tester et valider une extraction
+
+```spl
+← Tester la regex avant de sauvegarder :
+index=web sourcetype=access_combined
+| rex "(?P<api_version>v\d+)" field=uri
+| table uri, api_version
+| where isnotnull(api_version)
+
+← Vérifier la couverture :
+| rex "(?P<api_version>v\d+)" field=uri
+| eval extracted = if(isnotnull(api_version), 1, 0)
+| stats sum(extracted) AS matched, count AS total
+| eval coverage = round(matched/total*100, 1)
+```
+
+---
+
+---
+
 # 🟧 Power User (SPLK-1002) — sujets supplémentaires
 
 > Les sections suivantes couvrent les sujets **spécifiques au Power User** qui ne sont pas au programme du Core User. Tout ce qui précède reste valable et est considéré comme acquis.
 
 ---
 
-## 24. Sous-recherches
+## 31. Sous-recherches
 
 Une **sous-recherche** est une recherche imbriquée dans une autre, entre crochets `[ ]`. Elle est exécutée en premier, et son résultat est injecté dans la recherche principale.
 
@@ -760,7 +1270,7 @@ index=web [search index=auth action=failure | return 5 user]
 
 ---
 
-## 25. Commandes de combinaison — `append`, `appendcols`, `join`
+## 32. Commandes de combinaison — `append`, `appendcols`, `join`
 
 ### `append` — empiler des résultats
 
@@ -803,7 +1313,7 @@ index=web | join clientip [search index=threat_intel | fields src_ip, threat_lev
 
 ---
 
-## 26. Commande `transaction`
+## 33. Commande `transaction` avancée
 
 `transaction` regroupe des événements liés en une **session** ou **transaction**, selon un champ commun et/ou des conditions de début/fin.
 
@@ -840,7 +1350,7 @@ index=web
 
 ---
 
-## 27. Commandes `eventstats` et `streamstats`
+## 34. Commandes `eventstats` et `streamstats`
 
 ### `eventstats` — stats sans transformer les événements
 
@@ -888,7 +1398,7 @@ index=web
 
 ---
 
-## 28. Commandes `xyseries` et `untable`
+## 35. Commandes `xyseries` et `untable`
 
 Ces deux commandes servent à **pivoter** les données — passer d'un format long à un format large, ou inversement.
 
@@ -915,7 +1425,7 @@ index=web | stats count by _time, status
 
 ---
 
-## 29. Commande `map`
+## 36. Commande `map`
 
 `map` exécute une recherche pour **chaque ligne** du jeu de résultats courant, en substituant les valeurs de champs comme variables.
 
@@ -930,7 +1440,7 @@ index=web | top limit=5 clientip
 
 ---
 
-## 30. Search Macros
+## 37. Search Macros
 
 Une **search macro** est un raccourci réutilisable pour un fragment de SPL, défini dans Settings → Advanced Search → Search macros.
 
@@ -981,7 +1491,7 @@ earliest=-$hours$h
 
 ---
 
-## 31. Field Aliases & Calculated Fields
+## 38. Field Aliases & Calculated Fields
 
 ### Field Aliases
 
@@ -1013,7 +1523,7 @@ Un **calculated field** est un champ `eval` **sauvegardé** qui s'applique autom
 
 ---
 
-## 32. Workflow Actions
+## 39. Workflow Actions
 
 Les **workflow actions** ajoutent des actions contextuelles sur les champs d'un événement (clic droit ou menu sur un champ dans les résultats).
 
@@ -1038,7 +1548,7 @@ URL : https://www.virustotal.com/gui/ip-address/$clientip$
 
 ---
 
-## 33. Lookups avancés
+## 40. Lookups avancés
 
 ### Lookups avec wildcards
 
@@ -1081,7 +1591,7 @@ index=web | lookup network_lookup clientip AS src CIDR(network) OUTPUT zone
 
 ---
 
-## 34. Data Models, Pivot & `tstats`
+## 41. Data Models, Pivot & `tstats`
 
 ### Data Models
 
