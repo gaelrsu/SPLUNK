@@ -37,6 +37,10 @@ searchpeer : équivalent à indexer
 Splunk diag : créé un tar gz avec info sur conf (attention ne prend pas les logs / events) 
 montrera l'index mais pas le contenu 
 
+  après restart, les donnees hot deviennent warm
+  
+The KV store stores your data as key-value pairs in collections ( Les recherches font souvent référence à un fichier csv ou à un KV store)
+
 ## Configuration files
 toute conf est modifiable via la GUI si possible , CLI et API rest
 ([stanza] paramètre)
@@ -83,17 +87,70 @@ on détruit pas des events mais le bucket (politique de rétention)
 les buckets chaud et tiende partagent un même repetoire
 
 
+# Day 2
+
+useACK attente du l'ACK de l'indexer 
+ Dans indexes.conf, préciser les volumes
+/!\ si pas volume, splunk ne peut pas monitorer le filesystem
+
+## Backup
+backup du ETC  +++ stocké dans SPLUNK_HOME/var/lib/splunk
+
+## move an index
+un index peut etre déplacer mais penser a maj indexers.conf
+les events dans l'index ne peuvent pas etre supprimé
+ | delete , laisse les events en place mais ne les montre plus au search 
+    exemple : index=soc host=myds_temp souce=access.log | delete
+      si mauvaise manip, voir avec le support car les données sont toujours existantes
+
+## Fishbucket
+Allows Splunk to track monitored input files
+Contains file metadata which identifies a pointer to the file, and a pointer to where Splunk last read the file
+l'option continuously Monitor permet de garder une continuité dans le monitoring, en cas de coupure il reprendre à partir du fishbucket, reprendre ou il s'est arreté 
+
+reset du fish bucket avec la commande splunk cmd btprobe –d SPLUNK_DB/fishbucket/splunk_private_db --file <source> --reset
+(stoper splunk puis relancer après)
+
+frozen bucket -> splunk rebuild <Thawed_Path> pour remettre les données hors frozen
+
+## Users and Roles 
+La capability d'acceleration permet de créer les objets accélérés (qui vont écrire dans les indexes). 
+Pour accéder à l'information accélérée, il suffit d'avoir la capacité de lecture sur l'index .
+(toutes recherches doient mentionner un index)
+
+disk space limit : dans la création d'un nouveau role, on a la possibilité de mettre un "disk space limit" 
+lors d'un search, la requete est stockée dans via un job sur le drive ( par défaut stocké pendant 10min, pour un report, 2 prochaines exécutions, modifiable dans le SH)
+
+le role edit roles grantable (donne roles que j'ai déjà) et edit user permet de donner la possiblité de gérer les users
+
+l'option -locked-out (en cli) permet de ne pas bloquer en cas de failled pwd
+splunk edit user <locked_user> -locked-out false –auth <admin_user:password>
 
 
+## Get Data Into Splunk
 
+Input >     Parsing > Indexing > indexes < searching
+Forwarder  |              Indexer          | Search head
 
+input type :
+Files / directories
+Netword data 
+script output
+Linux and windows logs
+Http 
+......
 
+You can add data inputs with :
+Apps and add ons
+SPlunk web
+CLI
+Editing inputs.conf
 
-
-
-
-
-
+### Metadata Settings
+| host |>| Where abd event originates |
+| source |>| source file, stream or input of an event |
+| Sourcetype |>| Format and category of the data input |
+| Index |>| where data is stored by splunk |
 
 
 
