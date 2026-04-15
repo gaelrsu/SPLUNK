@@ -32,7 +32,7 @@ Replace the default certificates
 
 smart store : équivalent à un S3 dans le cloud, on retire les indexers et les stock dans le cloud
 
-searchpeer : équivalent à indexer
+searchpeer : équivalent à indexer mais il travaille avec le search head
 
 Splunk diag : créé un tar gz avec info sur conf (attention ne prend pas les logs / events) 
 montrera l'index mais pas le contenu 
@@ -152,12 +152,22 @@ Editing inputs.conf
 | Sourcetype |>| Format and category of the data input |
 | Index |>| where data is stored by splunk |
 
+A tsidx file associates each unique keyword in your data with location references to events
 
+si symbole = dans l'event alors sorti par le search head (key value pair)
 
+les HEC permettent d'encapsuler en cas de flux hors tcp
 
-
-
-
+## HF UF
+| Critère                          | Universal Forwarder (UF)                                                                 | Heavy Forwarder (HF)                                                                 |
+|----------------------------------|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Usage principal                  | Idéal pour la plupart des cas (collecte de logs, forwarder intermédiaire)               | Utilisé pour des cas spécifiques et avancés                                         |
+| Infrastructure                  | Léger, faible empreinte sur les serveurs de production                                  | Fonctionne généralement sur des serveurs dédiés                                     |
+| Performance / Bande passante     | Moins de bande passante, traitement plus rapide                                         | Peut augmenter le trafic réseau                                                     |
+| Routage des données              | Routage simple ou duplication vers plusieurs indexers                                   | Routage complexe au niveau des événements                                           |
+| Filtrage des données             | Ne supporte pas le filtrage basé sur des expressions régulières                         | Peut anonymiser ou masquer les données avant envoi                                  |
+| Cas d’utilisation spécifiques    | Usage général                                                                          | Requis pour certains apps, add-ons ou inputs (ex: HEC, DB Connect)                 |
+| Fonctionnalités supplémentaires  | Limité                                                                                | Fournit Splunk Web et un environnement Python contrôlé                             |
 
 
 
