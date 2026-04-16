@@ -198,10 +198,59 @@ exemple : server class W -> APP Wini -> Windows 1
                                      -> Windows AD 
 
 
+## Monitor input 
+utilisation possible de * et ... (pour tous les répertoires) dans le fichier de conf ex : 
+[monitor:///var/log/www1/secure.log]
+[monitor:///var/log/www*/secure.*]
+[monitor:///var/log/.../secure.*]
+
+possibilité de mettre des blacklist et whitelist (utilisation de ... et * impossible)
+ex : 
+[monitor:///var/log/www1/]
+whitelist = \.log$
 
 
+## Network Inputs
+
+## Scripted inputs 
+tourne sur le serveur source (UF)
+sortie script ajouter dans la recherche sur le SH : "| multikv" (/!\ attention les entetes doivent etre dans le même event)
+ajouter "| transaction" avant multikv  pour regrouper les events 
 
 
+## Agentless Inputs
+
+Configure a HTTP Event collector agentless inputs (HEC)
+Send events to splunk without the use of forwarders (activate on HF)
+
+## Fine-tune Inputs 
+
+index time process :
+Input base handled at the source (usually a forwarder)
+Parsing phase :
+handled by indexers (or heavy forwarders)
+Indexing phase : 
+Handled by indexers 
+
+Input       ->   parsing -> licencse meter -> indexing    ->search-> web
+Forwarder                         Indexers                      Search head
+
+le fichier props.conf est utilisé dans toutes les phases
+on retrouve en stanza par exemple : 
+source 
+host
+sourcetype
+
+(le event breaker sert pour le loadbalancing)
+
+## Parsing Phase and data Preview 
+
+Le parsing a lieu sur le parser 
+Inputs     -> parsing -> license meter -> Indexing
+Forwarder                 Indexer
+Le parsing créé, modifie et redirige les events
+
+Le HF découpe : il identifie la limite entre chaque event à l'aie du line breaker 
 
 
 
