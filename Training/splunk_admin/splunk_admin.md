@@ -250,7 +250,9 @@ Inputs     -> parsing -> license meter -> Indexing
 Forwarder                 Indexer
 Le parsing créé, modifie et redirige les events
 
-Le HF découpe : il identifie la limite entre chaque event à l'aie du line breaker 
+Le HF découpe : il identifie la limite entre chaque event à l'aide du line breaker 
+attention une date est considérée comme un 'break' (il faudra ajouter : BREAK_ONLY_BEFORE_DATE = true)
+
 
 
 
