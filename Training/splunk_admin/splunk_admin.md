@@ -170,11 +170,13 @@ les HEC permettent d'encapsuler en cas de flux hors tcp
 | Fonctionnalités supplémentaires  | Limité                                                                                | Fournit Splunk Web et un environnement Python contrôlé                             |
 
 
+Check current splunktcp settings in inputs.conf using the btool command.
+./splunk btool inputs list splunktcp --debug
 
+to set a listening port : ./splunk enable listen 9997
 
-
-
-
+## load balancing
+bascule quand end of file ou 30 sec (by default) 
 
 
 
