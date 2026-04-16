@@ -179,6 +179,45 @@ to set a listening port : ./splunk enable listen 9997
 bascule quand end of file ou 30 sec (by default) 
 
 
+# Day 3
+On peut créer des groupes pour le DS deploie à des groupes séparé (exemple linux | windows)
+
+## DS 
+Le DS pousse les conf sur les serveurs. C'est le client requete le DS.
+exemple : deployer les apps vers les indexers.
+
+(dans le dashboard du DS, il s'appelle Forwarder Management, voir dans SETTINGS)
+
+Conf:
+Maps clients to apps : /etc/apps/<app>/local/serverclass.conf
+App repo : /etc/deployme,t-apps/<app>/local
+App/config to deploy : outputs.conf, inputs.conf, etc..
+
+Le server class est le mapping entre serveurs et apps 
+exemple : server class W -> APP Wini -> Windows 1
+                                     -> Windows AD 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
