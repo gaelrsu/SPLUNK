@@ -1,10 +1,15 @@
 # Day 1 
 
 ### Deploy splunk 
+
 4 stages : Inout any text data / Parse the date into events / Search and report 
+
 Simple Test server : 1 server for searching / indexing / Parsing / input
+
 parsing : ou l'event s'arrete et ou ke suivant commence pour etre lisible sur le search head
+
 universal forwarder a besoin de fichier inputs (ce que je récupère) et outputs (ou les envoyer)
+
 Monitoring console, vérifier etat de santé des serveurs, l'état des indexers, vérifier les envois des universal forwarder 
 si cluster , besoin d'un cluster manager (qui ne fera pas parti du cluster)
 
