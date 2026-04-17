@@ -1373,4 +1373,3 @@ appList       = my_windows_inputs_app
 
 ---
 
-*Bonne révision — Good luck pour la certification Splunk Enterprise Admin !*
