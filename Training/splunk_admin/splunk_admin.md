@@ -259,9 +259,18 @@ Le HF découpe : il identifie la limite entre chaque event à l'aide du line bre
 attention une date est considérée comme un 'break' (il faudra ajouter : BREAK_ONLY_BEFORE_DATE = true)
 
 
+# Day 4
 
+## Ingest Actions
+Can mask, truncate, route or eliminate data (rulesets in Splunk Web)
 
+CM automatically distributes to Indexers
 
+Order of Ingest Action and Classic Rules :
+1. Heavy Forwarder Classic transforms
+2. Heavy Forwarder Ingest Action ruleset transforms
+3. Indexer Classic transforms
+4. Indexer Ingest Action ruleset transforms
 
 
 
